@@ -1,0 +1,24 @@
+
+
+// import React from 'react';
+// import styled from 'styled-components';
+// import DashboardOverview from './DashboardOverview';
+// import RecentOrders from './RecentOrders';
+
+// const DashboardContainer = styled.div`
+//   padding: 40px;
+//   background-color: #ffffff;
+//   min-height: 100vh;
+//   font-family: 'Roboto', sans-serif;
+// `;
+
+// const Dashboard = () => {
+//   return (
+//     <DashboardContainer>
+//       <DashboardOverview />
+//       <RecentOrders />
+//     </DashboardContainer>
+//   );
+// };
+
+// export default Dashboard;
