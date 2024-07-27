@@ -4,7 +4,6 @@ import { Row, Col, Card, Statistic, Typography } from 'antd';
 import {
   DollarOutlined,
   ShoppingCartOutlined,
-  CreditCardOutlined,
   ShoppingOutlined,
   SyncOutlined,
   CheckCircleOutlined,
@@ -63,19 +62,27 @@ const DashboardOverview = () => {
   const [orders, setOrders] = useState([]);
   const [orderSummary, setOrderSummary] = useState({
     totalOrders: 0,
-    ordersPending: 0,
-    ordersProcessing: 0,
-    ordersDelivered: 0
+    ordersOrdered: 0,
+    ordersDelivered: 0,
+    todayOrders: 0,
+    thisMonthSales: 0,
+    allTimeSales: 0,
   });
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchOrders = async () => {
       try {
         const data = await getAllOrders();
-        setOrders(data);
-        calculateOrderSummary(data);
+        if (Array.isArray(data)) {
+          setOrders(data);
+          calculateOrderSummary(data);
+        } else {
+          throw new Error('Data is not an array');
+        }
       } catch (error) {
         console.error('Error fetching orders:', error);
+        setError('Failed to load orders');
       }
     };
 
@@ -83,42 +90,71 @@ const DashboardOverview = () => {
   }, []);
 
   const calculateOrderSummary = (orders) => {
+    const today = new Date().toISOString().split('T')[0];
+    const thisMonth = new Date().toISOString().slice(0, 7); // Get 'YYYY-MM' format
+
+    let thisMonthSales = 0;
+    let allTimeSales = 0;
+
     const summary = {
       totalOrders: orders.length,
-      ordersPending: orders.filter(order => order.status === 'PENDING').length,
-      ordersProcessing: orders.filter(order => order.status === 'PROCESSING').length,
-      ordersDelivered: orders.filter(order => order.status === 'DELIVERED').length,
+      ordersOrdered: 0,
+      ordersDelivered: 0,
+      todayOrders: 0,
     };
-    setOrderSummary(summary);
+
+    orders.forEach(order => {
+      const orderDate = order.creationDate.split('T')[0];
+      const orderMonth = order.creationDate.slice(0, 7);
+      const orderTotal = order.orderDetails.reduce((total, detail) => total + (detail.product.price * detail.quantity), 0);
+
+      if (orderDate === today) {
+        summary.todayOrders += 1;
+      }
+      if (orderMonth === thisMonth) {
+        thisMonthSales += orderTotal;
+      }
+      allTimeSales += orderTotal;
+
+      if (order.status === 'ORDERED') {
+        summary.ordersOrdered += 1;
+      } else if (order.status === 'DELIVERED') {
+        summary.ordersDelivered += 1;
+      }
+    });
+
+    setOrderSummary({
+      ...summary,
+      thisMonthSales,
+      allTimeSales,
+    });
   };
 
   const stats = [
     {
       title: "Today's Orders",
-      value: orders.length, // Adjust this based on your data
-      cash: 0.00,
-      card: 0.00,
-      credit: 0.00,
+      value: `$${orderSummary.todayOrders.toFixed(2)}`,
+      cash: "$0.00",
+      card: "$0.00",
+      credit: "$0.00",
       color: '#00a693', // teal
       icon: <ShoppingCartOutlined style={{ fontSize: '24px', color: '#fff' }} />,
     },
-
     {
       title: "This Month",
-      value: 32091.17,
-      color: '#ffa500', // blue
-      icon: <DollarOutlined style={{ fontSize: '24px', color: '#fff' }} />,
+      value: `$${orderSummary.thisMonthSales.toFixed(2)}`,
+      color: '#0055ff', // blue
+      icon: <ShoppingOutlined style={{ fontSize: '24px', color: '#fff' }} />,
     },
-
     {
       title: "All-Time Sales",
-      value: 116206.98,
+      value: `$${orderSummary.allTimeSales.toFixed(2)}`,
       color: '#00aa55', // green
       icon: <DollarOutlined style={{ fontSize: '24px', color: '#fff' }} />,
     },
   ];
 
-  const orderSummaryData = [
+  const summaryStats = [
     {
       title: 'Total Orders',
       value: orderSummary.totalOrders,
@@ -126,14 +162,8 @@ const DashboardOverview = () => {
       icon: <ShoppingOutlined style={{ fontSize: '24px', color: '#ffa500' }} />,
     },
     {
-      title: 'Orders Pending',
-      value: orderSummary.ordersPending,
-      color: '#ff4d4f', // red
-      icon: <WarningOutlined style={{ fontSize: '24px', color: '#ff4d4f' }} />,
-    },
-    {
-      title: 'Orders Processing',
-      value: orderSummary.ordersProcessing,
+      title: 'Orders Ordered',
+      value: orderSummary.ordersOrdered,
       color: '#0055ff', // blue
       icon: <SyncOutlined style={{ fontSize: '24px', color: '#0055ff' }} />,
     },
@@ -148,35 +178,46 @@ const DashboardOverview = () => {
   return (
     <div>
       <OverviewTitle>Dashboard Overview</OverviewTitle>
-      <Row gutter={[16, 16]}>
-        {stats.map(stat => (
-          <Col span={5} key={stat.title}>
-            <CardContainer color={stat.color}>
-              <div>{stat.icon}</div>
-              <StatisticTitle
-                title={stat.title}
-                value={stat.value}
-                precision={2}
-                valueStyle={{ color: '#fff' }}
-              />
-            </CardContainer>
-          </Col>
-        ))}
-      </Row>
-      <Row gutter={[16, 16]} style={{ marginTop: '20px' }}>
-        {orderSummaryData.map(summary => (
-          <Col span={6} key={summary.title}>
-            <CardContainer color="#fff" style={{ color: summary.color }}>
-              <div>{summary.icon}</div>
-              <Statistic
-                title={summary.title}
-                value={summary.value}
-                valueStyle={{ color: summary.color }}
-              />
-            </CardContainer>
-          </Col>
-        ))}
-      </Row>
+      {error ? (
+        <p>{error}</p>
+      ) : (
+        <>
+          <Row gutter={[16, 16]}>
+            {stats.map(stat => (
+              <Col span={6} key={stat.title}>
+                <CardContainer color={stat.color}>
+                  <div>{stat.icon}</div>
+                  <StatisticTitle
+                    title={stat.title}
+                    value={stat.value}
+                    precision={2}
+                    valueStyle={{ color: '#fff' }}
+                  />
+                  <CashDetails>
+                    <p>Cash: {stat.cash}</p>
+                    <p>Card: {stat.card}</p>
+                    <p>Credit: {stat.credit}</p>
+                  </CashDetails>
+                </CardContainer>
+              </Col>
+            ))}
+          </Row>
+          <Row gutter={[16, 16]} style={{ marginTop: '20px' }}>
+            {summaryStats.map(summary => (
+              <Col span={8} key={summary.title}>
+                <CardContainer color="#fff" style={{ color: summary.color }}>
+                  <div>{summary.icon}</div>
+                  <Statistic
+                    title={summary.title}
+                    value={summary.value}
+                    valueStyle={{ color: summary.color }}
+                  />
+                </CardContainer>
+              </Col>
+            ))}
+          </Row>
+        </>
+      )}
     </div>
   );
 };

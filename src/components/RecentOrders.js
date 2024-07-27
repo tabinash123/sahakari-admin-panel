@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Typography, Modal, Button, Descriptions, Tag, Tooltip, Spin, message, Dropdown, Menu } from 'antd';
+import { Table, Typography, Modal, Button, Descriptions, Tag, Tooltip, Spin, message, Dropdown, Menu } from 'antd';
 import styled from 'styled-components';
 import { EyeOutlined, DownOutlined } from '@ant-design/icons';
 import { getAllOrders } from '../repository/getAllOrdersRepository'; // Adjust the path as necessary
@@ -9,25 +9,20 @@ import { updateOrderStatus } from '../repository/updateOrderStatus'; // Adjust t
 const { Title } = Typography;
 
 const theme = {
-  primaryColor: '#4A90E2',
-  primaryHoverColor: '#40A9FF',
-  lightBackgroundColor: '#F5F5F5',
+  primaryColor: '#1a73e8',
+  primaryHoverColor: '#185abc',
+  lightBackgroundColor: '#f1f3f4',
   whiteColor: '#FFFFFF',
-  grayColor: '#333',
-  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+  grayColor: '#5f6368',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
   fontFamily: 'Roboto, sans-serif',
 };
 
 const OrdersContainer = styled.div`
-  padding: 40px;
+  // padding: 20px 40px;
   background-color: ${theme.whiteColor};
-  border-radius: 16px;
-  max-width: 1200px;
+  max-height: calc(100vh - 100px); /* Adjust based on your layout */
   overflow-y: auto;
-  font-family: ${theme.fontFamily};
-  @media (max-width: 768px) {
-    padding: 20px;
-  }
 `;
 
 const Header = styled.div`
@@ -76,10 +71,10 @@ const StyledTable = styled(Table)`
 const StyledButton = styled(Button)`
   border-radius: 8px;
   transition: all 0.3s ease;
-  background-color: #007bff;
+  background-color: ${theme.primaryColor};
   color: #fff;
   &:hover {
-    background-color: #0056b3;
+    background-color: ${theme.primaryHoverColor};
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
@@ -124,7 +119,21 @@ const RecentOrders = () => {
     const fetchOrders = async () => {
       try {
         const data = await getAllOrders();
-        setOrders(data);
+        const sortedOrders = data
+          .sort((a, b) => new Date(b.creationDate) - new Date(a.creationDate))
+          .slice(0, 10);
+        const formattedOrders = sortedOrders.map(order => ({
+          id: order.id,
+          customerName: order.customerName,
+          customerEmail: order.customerEmail,
+          quantity: order.orderDetails.reduce((sum, detail) => sum + detail.quantity, 0),
+          status: order.status,
+          creationDate: order.creationDate,
+          orderDetails: order.orderDetails,
+          customerPhone: order.customerPhone,
+          customerAddress: order.customerAddress,
+        }));
+        setOrders(formattedOrders);
         setLoading(false);
       } catch (error) {
         setError(error);
@@ -186,9 +195,9 @@ const RecentOrders = () => {
       key: 'id',
     },
     {
-      title: 'Product ID',
-      dataIndex: 'productId',
-      key: 'productId',
+      title: 'Customer Name',
+      dataIndex: 'customerName',
+      key: 'customerName',
     },
     {
       title: 'Customer Email',
@@ -252,14 +261,13 @@ const RecentOrders = () => {
   return (
     <OrdersContainer>
       <Header>
-        <Title level={2} style={{ color: theme.primaryColor }}>Recent Orders</Title>
+        <Title level={2} style={{ color: "black" }}>Recent Orders</Title>
       </Header>
       <StyledTable
         dataSource={orders}
         columns={columns}
         rowKey="id"
         pagination={{ pageSize: 10 }}
-        // scroll={{ y: 400 }}
       />
 
       {viewingOrder && (
@@ -270,17 +278,35 @@ const RecentOrders = () => {
           footer={null}
         >
           <Descriptions bordered column={1}>
-            <Descriptions.Item label="Order ID">{viewingOrder.id}</Descriptions.Item>
-            <Descriptions.Item label="Product ID">{viewingOrder.productId}</Descriptions.Item>
+            <Descriptions.Item label="Customer Name">{viewingOrder.customerName}</Descriptions.Item>
             <Descriptions.Item label="Customer Email">{viewingOrder.customerEmail}</Descriptions.Item>
-            <Descriptions.Item label="Quantity">{viewingOrder.quantity}</Descriptions.Item>
-            <Descriptions.Item label="Status">
-              <Tag color={statusColors[viewingOrder.status]}>{viewingOrder.status}</Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="Creation Date">
-              {viewingOrder.creationDate}
-            </Descriptions.Item>
+            <Descriptions.Item label="Customer Phone">{viewingOrder.customerPhone}</Descriptions.Item>
+            <Descriptions.Item label="Customer Address">{viewingOrder.customerAddress}</Descriptions.Item>
           </Descriptions>
+          <Table
+            columns={[
+              {
+                title: 'Product Name',
+                dataIndex: ['product', 'name'],
+                key: 'name',
+              },
+              {
+                title: 'Quantity',
+                dataIndex: 'quantity',
+                key: 'quantity',
+              },
+              {
+                title: 'Price',
+                dataIndex: ['product', 'price'],
+                key: 'price',
+                render: (price) => `$${price.toFixed(2)}`,
+              },
+            ]}
+            dataSource={viewingOrder.orderDetails}
+            pagination={false}
+            rowKey={(record) => record.id}
+            style={{ marginTop: '20px' }}
+          />
         </EnhancedModal>
       )}
     </OrdersContainer>

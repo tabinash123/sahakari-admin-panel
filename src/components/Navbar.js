@@ -26,9 +26,7 @@ const Logo = styled.div`
   align-items: center;
   font-size: 24px;
   font-weight: bold;
-  background: linear-gradient(90deg, #FF512F, #DD2476); /* Gradient colors */
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #003366;
   letter-spacing: 2px;
   text-transform: uppercase;
   animation: fadeIn 2s ease-in-out;

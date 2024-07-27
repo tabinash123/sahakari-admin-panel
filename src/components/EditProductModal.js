@@ -18,8 +18,14 @@ const EditProductModal = ({ isModalVisible, handleCancel, product, fetchProducts
 
   const handleFinish = async (values) => {
     setLoading(true);
+    console.log('values:', values);
     try {
-      const updatedProduct = { ...product, ...values, filePath: file };
+      const updatedProduct = { 
+        ...product, 
+        ...values, 
+        name: String(values.name),  // Ensure name is a string
+        filePath: file  // This will be the File object if a new file was uploaded
+      };
       await updateProduct(updatedProduct);
       message.success('Product updated successfully');
       fetchProducts();
@@ -32,7 +38,7 @@ const EditProductModal = ({ isModalVisible, handleCancel, product, fetchProducts
   };
 
   const handleFileChange = ({ file }) => {
-    setFile(file);
+    setFile(file.originFileObj);  // Use originFileObj to get the actual File object
   };
 
   return (

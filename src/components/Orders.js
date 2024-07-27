@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Typography, Modal, Button, Descriptions, Tag, Tooltip, Spin, message, Dropdown, Menu } from 'antd';
+import { Table, Typography, Modal, Button, Descriptions, Tag, Tooltip, Spin, message, Dropdown, Menu } from 'antd';
 import styled from 'styled-components';
 import { EyeOutlined, DownOutlined } from '@ant-design/icons';
 import { getAllOrders } from '../repository/getAllOrdersRepository'; // Adjust the path as necessary
@@ -14,14 +14,12 @@ const theme = {
   lightBackgroundColor: '#F5F5F5',
   whiteColor: '#FFFFFF',
   grayColor: '#333',
-  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
   fontFamily: 'Roboto, sans-serif',
 };
 
 const OrdersContainer = styled.div`
-  padding: 20px 40px;
+  padding: 40px 40px;
   background-color: ${theme.whiteColor};
-  border-radius: 16px;
   max-height: calc(100vh - 100px); /* Adjust based on your layout */
   overflow-y: auto;
 `;
@@ -109,7 +107,7 @@ const EnhancedModal = styled(Modal)`
   }
 `;
 
-const RecentOrders = () => {
+const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -120,7 +118,18 @@ const RecentOrders = () => {
     const fetchOrders = async () => {
       try {
         const data = await getAllOrders();
-        setOrders(data);
+        const formattedOrders = data.map(order => ({
+          id: order.id,
+          customerName: order.customerName,
+          customerEmail: order.customerEmail,
+          quantity: order.orderDetails.reduce((sum, detail) => sum + detail.quantity, 0),
+          status: order.status,
+          creationDate: order.creationDate,
+          orderDetails: order.orderDetails,
+          customerPhone: order.customerPhone,
+          customerAddress: order.customerAddress,
+        }));
+        setOrders(formattedOrders);
         setLoading(false);
       } catch (error) {
         setError(error);
@@ -182,9 +191,9 @@ const RecentOrders = () => {
       key: 'id',
     },
     {
-      title: 'Product ID',
-      dataIndex: 'productId',
-      key: 'productId',
+      title: 'Customer Name',
+      dataIndex: 'customerName',
+      key: 'customerName',
     },
     {
       title: 'Customer Email',
@@ -255,7 +264,6 @@ const RecentOrders = () => {
         columns={columns}
         rowKey="id"
         pagination={{ pageSize: 10 }}
-        // scroll={{ y: 400 }}
       />
 
       {viewingOrder && (
@@ -266,21 +274,39 @@ const RecentOrders = () => {
           footer={null}
         >
           <Descriptions bordered column={1}>
-            <Descriptions.Item label="Order ID">{viewingOrder.id}</Descriptions.Item>
-            <Descriptions.Item label="Product ID">{viewingOrder.productId}</Descriptions.Item>
+            <Descriptions.Item label="Customer Name">{viewingOrder.customerName}</Descriptions.Item>
             <Descriptions.Item label="Customer Email">{viewingOrder.customerEmail}</Descriptions.Item>
-            <Descriptions.Item label="Quantity">{viewingOrder.quantity}</Descriptions.Item>
-            <Descriptions.Item label="Status">
-              <Tag color={statusColors[viewingOrder.status]}>{viewingOrder.status}</Tag>
-            </Descriptions.Item>
-            <Descriptions.Item label="Creation Date">
-              {viewingOrder.creationDate}
-            </Descriptions.Item>
+            <Descriptions.Item label="Customer Phone">{viewingOrder.customerPhone}</Descriptions.Item>
+            <Descriptions.Item label="Customer Address">{viewingOrder.customerAddress}</Descriptions.Item>
           </Descriptions>
+          <Table
+            columns={[
+              {
+                title: 'Product Name',
+                dataIndex: ['product', 'name'],
+                key: 'name',
+              },
+              {
+                title: 'Quantity',
+                dataIndex: 'quantity',
+                key: 'quantity',
+              },
+              {
+                title: 'Price',
+                dataIndex: ['product', 'price'],
+                key: 'price',
+                render: (price) => `$${price.toFixed(2)}`,
+              },
+            ]}
+            dataSource={viewingOrder.orderDetails}
+            pagination={false}
+            rowKey={(record) => record.id}
+            style={{ marginTop: '20px' }}
+          />
         </EnhancedModal>
       )}
     </OrdersContainer>
   );
 };
 
-export default RecentOrders;
+export default Orders;
